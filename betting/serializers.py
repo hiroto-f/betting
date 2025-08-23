@@ -20,4 +20,4 @@ class EventSerializer(serializers.ModelSerializer):
 class BetSerializer(serializers.ModelSerializer):
     class Meta:
         model = Bet
-        fields = ["id", "option", "amount", "created_at"]
+        fields = ["id", "option", "username", "amount", "created_at"]

@@ -1,7 +1,7 @@
 # betting/views.py
 from decimal import Decimal
 from django.db.models import Sum
-from rest_framework import viewsets
+from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -16,6 +16,8 @@ class EventViewSet(viewsets.ModelViewSet):
     """
     queryset = Event.objects.all().order_by("-created_at")
     serializer_class = EventSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["id", "title"]
 
     @action(detail=True, methods=["post"])
     def add_option(self, request, pk=None):
@@ -72,6 +74,15 @@ class OptionViewSet(viewsets.ModelViewSet):
     """
     queryset = Option.objects.all().order_by("id")
     serializer_class = OptionSerializer
+    
+    @action(detail=True, methods=["get"])
+    def bets(self, request, pk=None):
+        """
+        /api/options/{id}/bets/ で該当OptionのBet一覧（最新順）を返す
+        """
+        option = self.get_object()
+        qs = option.bets.all().order_by("-created_at")
+        return Response(BetSerializer(qs, many=True).data)
 
 
 class BetViewSet(viewsets.ModelViewSet):
