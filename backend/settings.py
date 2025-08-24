@@ -76,7 +76,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'backend.wsgi.application'
 
 
-if env("DATABASE_URL") and type(env("DATABASE_URL")) is str:
+if "DATABASE_URL" in os.environ:
     DATABASES = {
         "default": dj_database_url.config(
             default=env("DATABASE_URL"),  # type: ignore
