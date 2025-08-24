@@ -35,26 +35,37 @@ class EventViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["get"])
     def board(self, request, pk=None):
         """
-        出馬表 (総プール、各選択肢の賭け金合計とオッズ) を返す
+        出馬表（総プール、各選択肢の賭け金合計とオッズ）を返す。
+        オッズはパリミュチュエル方式： total_pool / option_pool
+        option_pool が 0 の場合は None（フロントで「—」等を表示）。
         """
         event = self.get_object()
-        # 総プール
-        total_pool = Bet.objects.filter(option__event=event).aggregate(
-            s=Sum("amount")
-        ).get("s") or Decimal("0")
+
+        # 総プール（Decimalで厳密に集計）
+        total_pool = (
+            Bet.objects.filter(option__event=event).aggregate(s=Sum("amount")).get("s")
+            or Decimal("0")
+        )
 
         options_data = []
         for opt in event.options.all():
-            total_amount = (
+            option_pool = (
                 Bet.objects.filter(option=opt).aggregate(s=Sum("amount")).get("s")
                 or Decimal("0")
             )
-            odds = float(total_pool / total_amount) if total_amount > 0 else None
+
+            if option_pool > 0:
+                raw_odds = (total_pool / option_pool) if total_pool > 0 else Decimal("0")
+                # 表示用に四捨五入（小数2桁）
+                odds = float(raw_odds.quantize(Decimal("0.01")))
+            else:
+                odds = None  # 誰も賭けていなければ「非常に大きい」扱い（フロントで「—」等）
+
             options_data.append(
                 {
                     "option_id": opt.id,
                     "name": opt.name,
-                    "total_amount": str(total_amount),
+                    "total_amount": str(option_pool),
                     "odds": odds,
                 }
             )
@@ -74,7 +85,7 @@ class OptionViewSet(viewsets.ModelViewSet):
     """
     queryset = Option.objects.all().order_by("id")
     serializer_class = OptionSerializer
-    
+
     @action(detail=True, methods=["get"])
     def bets(self, request, pk=None):
         """
