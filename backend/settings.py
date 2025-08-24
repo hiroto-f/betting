@@ -76,10 +76,10 @@ TEMPLATES = [
 WSGI_APPLICATION = 'backend.wsgi.application'
 
 
-if "DATABASE_URL" in os.environ:
+if env("DATABASE_URL") and type(env("DATABASE_URL")) is str:
     DATABASES = {
         "default": dj_database_url.config(
-            default=os.environ["DATABASE_URL"],
+            default=env("DATABASE_URL"),  # type: ignore
             conn_max_age=600
         )
     }
